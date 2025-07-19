@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Product, InsertProduct, UpdateProduct, changePasswordSchema, type ChangePasswordData } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -30,10 +30,11 @@ export default function Admin() {
   const [, navigate] = useLocation();
 
   // Redirect if not authenticated or not admin
-  if (!authLoading && (!user || !user.isAdmin)) {
-    navigate("/login");
-    return null;
-  }
+  useEffect(() => {
+    if (!authLoading && (!user || !user.isAdmin)) {
+      navigate("/login");
+    }
+  }, [authLoading, user, navigate]);
 
   const passwordForm = useForm<ChangePasswordData>({
     resolver: zodResolver(changePasswordSchema),
@@ -50,7 +51,7 @@ export default function Admin() {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("/api/auth/logout", { method: "POST" });
+      await apiRequest("POST", "/api/auth/logout");
     },
     onSuccess: () => {
       toast({
@@ -64,10 +65,7 @@ export default function Admin() {
 
   const changePasswordMutation = useMutation({
     mutationFn: async (data: ChangePasswordData) => {
-      await apiRequest("/api/auth/change-password", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      await apiRequest("POST", "/api/auth/change-password", data);
     },
     onSuccess: () => {
       toast({
@@ -264,6 +262,10 @@ export default function Admin() {
 
   if (authLoading) {
     return <div className="min-h-screen flex items-center justify-center">로딩 중...</div>;
+  }
+
+  if (!user || !user.isAdmin) {
+    return <div className="min-h-screen flex items-center justify-center">리디렉션 중...</div>;
   }
 
   return (
