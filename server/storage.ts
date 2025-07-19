@@ -1,9 +1,13 @@
 import { users, products, type User, type InsertUser, type Product, type InsertProduct, type UpdateProduct } from "@shared/schema";
+import bcrypt from "bcryptjs";
 
 export interface IStorage {
+  // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUserPassword(id: number, newPassword: string): Promise<boolean>;
+  validateUserPassword(username: string, password: string): Promise<User | null>;
   
   // Product operations
   getAllProducts(): Promise<Product[]>;
@@ -28,8 +32,22 @@ export class MemStorage implements IStorage {
     this.currentUserId = 1;
     this.currentProductId = 1;
     
-    // Initialize with sample products
+    // Initialize with default admin user and sample products
+    this.initializeDefaultAdmin();
     this.initializeSampleProducts();
+  }
+
+  private async initializeDefaultAdmin() {
+    const hashedPassword = await bcrypt.hash("admin123", 10);
+    const adminUser: User = {
+      id: this.currentUserId++,
+      username: "admin",
+      password: hashedPassword,
+      isAdmin: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.users.set(adminUser.id, adminUser);
   }
 
   private initializeSampleProducts() {
@@ -98,7 +116,15 @@ export class MemStorage implements IStorage {
 
     sampleProducts.forEach(product => {
       const id = this.currentProductId++;
-      this.products.set(id, { ...product, id });
+      const fullProduct: Product = {
+        ...product,
+        id,
+        originalPrice: product.originalPrice ?? null,
+        rating: product.rating ?? 0,
+        badge: product.badge ?? null,
+        isActive: product.isActive ?? 1
+      };
+      this.products.set(id, fullProduct);
     });
   }
 
@@ -114,9 +140,39 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentUserId++;
-    const user: User = { ...insertUser, id };
+    const hashedPassword = await bcrypt.hash(insertUser.password, 10);
+    const user: User = { 
+      ...insertUser, 
+      id, 
+      password: hashedPassword,
+      isAdmin: false,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
     this.users.set(id, user);
     return user;
+  }
+
+  async updateUserPassword(id: number, newPassword: string): Promise<boolean> {
+    const user = this.users.get(id);
+    if (!user) return false;
+    
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const updatedUser: User = {
+      ...user,
+      password: hashedPassword,
+      updatedAt: new Date()
+    };
+    this.users.set(id, updatedUser);
+    return true;
+  }
+
+  async validateUserPassword(username: string, password: string): Promise<User | null> {
+    const user = Array.from(this.users.values()).find(u => u.username === username);
+    if (!user) return null;
+    
+    const isValid = await bcrypt.compare(password, user.password);
+    return isValid ? user : null;
   }
 
   async getAllProducts(): Promise<Product[]> {
@@ -133,9 +189,25 @@ export class MemStorage implements IStorage {
 
   async createProduct(insertProduct: InsertProduct): Promise<Product> {
     const id = this.currentProductId++;
-    const product: Product = { ...insertProduct, id };
+    const product: Product = { 
+      ...insertProduct, 
+      id,
+      originalPrice: insertProduct.originalPrice ?? null,
+      rating: insertProduct.rating ?? 0,
+      badge: insertProduct.badge ?? null,
+      isActive: insertProduct.isActive ?? 1
+    };
     this.products.set(id, product);
     return product;
+  }
+
+  async createProducts(insertProducts: InsertProduct[]): Promise<Product[]> {
+    const createdProducts: Product[] = [];
+    for (const insertProduct of insertProducts) {
+      const product = await this.createProduct(insertProduct);
+      createdProducts.push(product);
+    }
+    return createdProducts;
   }
 
   async updateProduct(id: number, updateProduct: UpdateProduct): Promise<Product | undefined> {

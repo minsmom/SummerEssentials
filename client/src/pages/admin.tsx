@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Product, InsertProduct, UpdateProduct } from "@shared/schema";
+import { Product, InsertProduct, UpdateProduct, changePasswordSchema, type ChangePasswordData } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/useAuth";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,17 +12,116 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Edit, Trash2, ArrowLeft } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Edit, Trash2, ArrowLeft, Upload, Download, Key, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 
 export default function Admin() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { user, isLoading: authLoading } = useAuth();
+  const [, navigate] = useLocation();
+
+  // Redirect if not authenticated or not admin
+  if (!authLoading && (!user || !user.isAdmin)) {
+    navigate("/login");
+    return null;
+  }
+
+  const passwordForm = useForm<ChangePasswordData>({
+    resolver: zodResolver(changePasswordSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
 
   const { data: products, isLoading } = useQuery<Product[]>({
     queryKey: ["/api/products/all"],
+  });
+
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("/api/auth/logout", { method: "POST" });
+    },
+    onSuccess: () => {
+      toast({
+        title: "로그아웃",
+        description: "성공적으로 로그아웃되었습니다.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      navigate("/login");
+    },
+  });
+
+  const changePasswordMutation = useMutation({
+    mutationFn: async (data: ChangePasswordData) => {
+      await apiRequest("/api/auth/change-password", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "성공",
+        description: "비밀번호가 성공적으로 변경되었습니다.",
+      });
+      setShowPasswordDialog(false);
+      passwordForm.reset();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "오류",
+        description: error.message || "비밀번호 변경에 실패했습니다.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const bulkImportMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/products/bulk-import', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || '파일 업로드에 실패했습니다');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "대량 등록 성공",
+        description: data.message,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      setUploadProgress("");
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "대량 등록 실패",
+        description: error.message || "파일 업로드에 실패했습니다.",
+        variant: "destructive",
+      });
+      setUploadProgress("");
+    },
   });
 
   const createMutation = useMutation({
@@ -117,22 +219,230 @@ export default function Admin() {
     }
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = [
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-excel',
+      'text/csv',
+      'application/json'
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: "파일 형식 오류",
+        description: "Excel (.xlsx, .xls), CSV (.csv), JSON (.json) 파일만 업로드 가능합니다.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadProgress("업로드 중...");
+    bulkImportMutation.mutate(file);
+  };
+
+  const downloadTemplate = (format: string) => {
+    const url = `/api/products/template?format=${format}`;
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `product_template.${format}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const onPasswordSubmit = (data: ChangePasswordData) => {
+    changePasswordMutation.mutate(data);
+  };
+
   const resetForm = () => {
     setEditingProduct(null);
     setIsCreating(false);
   };
 
+  if (authLoading) {
+    return <div className="min-h-screen flex items-center justify-center">로딩 중...</div>;
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto p-6">
-        <div className="flex items-center gap-4 mb-6">
-          <Link href="/">
-            <Button variant="outline" size="sm">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              메인으로
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <Link href="/">
+              <Button variant="outline" size="sm">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                홈으로
+              </Button>
+            </Link>
+            <h1 className="text-3xl font-bold">상품 관리</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              {user?.username}님 환영합니다
+            </span>
+            <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Key className="h-4 w-4 mr-2" />
+                  비밀번호 변경
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>비밀번호 변경</DialogTitle>
+                </DialogHeader>
+                <Form {...passwordForm}>
+                  <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
+                    <FormField
+                      control={passwordForm.control}
+                      name="currentPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>현재 비밀번호</FormLabel>
+                          <FormControl>
+                            <Input type="password" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={passwordForm.control}
+                      name="newPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>새 비밀번호</FormLabel>
+                          <FormControl>
+                            <Input type="password" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={passwordForm.control}
+                      name="confirmPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>비밀번호 확인</FormLabel>
+                          <FormControl>
+                            <Input type="password" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        type="submit"
+                        disabled={changePasswordMutation.isPending}
+                      >
+                        {changePasswordMutation.isPending ? "변경 중..." : "변경"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setShowPasswordDialog(false)}
+                      >
+                        취소
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => logoutMutation.mutate()}
+              disabled={logoutMutation.isPending}
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              로그아웃
             </Button>
-          </Link>
-          <h1 className="text-3xl font-bold">상품 관리</h1>
+          </div>
+        </div>
+
+        {/* Bulk Import Section */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Upload className="h-5 w-5" />
+              대량 상품 등록
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="font-semibold mb-4">파일 업로드</h3>
+                <div className="space-y-4">
+                  <Input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".xlsx,.xls,.csv,.json"
+                    onChange={handleFileUpload}
+                    disabled={bulkImportMutation.isPending}
+                  />
+                  {uploadProgress && (
+                    <div className="text-sm text-blue-600">
+                      {uploadProgress}
+                    </div>
+                  )}
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    지원 형식: Excel (.xlsx, .xls), CSV (.csv), JSON (.json)
+                  </p>
+                </div>
+              </div>
+              <div>
+                <h3 className="font-semibold mb-4">템플릿 다운로드</h3>
+                <div className="space-y-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => downloadTemplate('excel')}
+                    className="w-full justify-start"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Excel 템플릿 다운로드
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => downloadTemplate('csv')}
+                    className="w-full justify-start"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    CSV 템플릿 다운로드
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => downloadTemplate('json')}
+                    className="w-full justify-start"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    JSON 템플릿 다운로드
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Product Management Section */}
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-semibold">등록된 상품</h2>
+          <Button
+            onClick={() => setIsCreating(true)}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            상품 추가
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

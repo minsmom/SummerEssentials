@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a full-stack web application built with React, Express.js, TypeScript, and PostgreSQL. It appears to be a Korean e-commerce or product showcase platform featuring product listings, search functionality, and an admin interface. The application uses modern web technologies including shadcn/ui components, TanStack Query for data fetching, and Drizzle ORM for database operations.
+This is a full-stack web application built with React, Express.js, TypeScript, and PostgreSQL. It's a Korean e-commerce or product showcase platform featuring product listings, search functionality, and a comprehensive admin interface with authentication. The application uses modern web technologies including shadcn/ui components, TanStack Query for data fetching, and includes session-based authentication with password management and bulk product import capabilities.
 
 ## User Preferences
 
@@ -30,28 +30,48 @@ Preferred communication style: Simple, everyday language.
 ## Key Components
 
 ### Database Schema
-The application uses two main tables:
-- **Users**: Basic user authentication (id, username, password)
+The application uses three main tables:
+- **Users**: Complete user authentication with admin privileges (id, username, password, isAdmin, timestamps)
 - **Products**: Product catalog with Korean won pricing, ratings, categories, and purchase links
-- **Features**: Product search, category filtering, active/inactive status
+- **Sessions**: Session storage for secure admin authentication
+- **Features**: Product search, category filtering, active/inactive status, bulk import from Excel/CSV/JSON
 
 ### API Endpoints
+
+#### Authentication
+- `POST /api/auth/login` - Admin login
+- `POST /api/auth/logout` - Admin logout
+- `GET /api/auth/me` - Get current user info
+- `POST /api/auth/change-password` - Change user password
+
+#### Products
 - `GET /api/products` - Get active products
-- `GET /api/products/all` - Get all products (admin)
+- `GET /api/products/all` - Get all products (admin only)
 - `GET /api/products/search` - Search products by query
 - `GET /api/products/category/:category` - Filter by category
 - `GET /api/products/:id` - Get single product
-- `POST /api/products` - Create product (admin)
-- `PUT /api/products/:id` - Update product (admin)
-- `DELETE /api/products/:id` - Delete product (admin)
+- `POST /api/products` - Create product (admin only)
+- `PUT /api/products/:id` - Update product (admin only)
+- `DELETE /api/products/:id` - Delete product (admin only)
+
+#### Bulk Import
+- `POST /api/products/bulk-import` - Upload Excel/CSV/JSON files for bulk product import (admin only)
+- `GET /api/products/template` - Download sample templates in Excel/CSV/JSON format
 
 ### Frontend Pages
 - **Home**: Product listing with search, category filters, and mobile-optimized cards
-- **Admin**: Product management interface with CRUD operations
+- **Admin**: Comprehensive product management interface with CRUD operations, bulk import, and password management
+- **Login**: Admin authentication page with session management
 - **404**: Not found page
 
+### Authentication & Security
+- Session-based authentication using express-session
+- Password hashing with bcryptjs
+- Admin-only route protection
+- Default admin account: username "admin", password "admin123"
+
 ### Storage Layer
-Currently uses in-memory storage (MemStorage class) with sample data, but is designed to be easily replaced with a database-backed implementation.
+Currently uses in-memory storage (MemStorage class) with sample data and default admin user. Includes password hashing, authentication validation, and bulk product import capabilities. Designed to be easily replaced with a database-backed implementation.
 
 ## Data Flow
 
