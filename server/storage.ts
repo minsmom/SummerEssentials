@@ -14,6 +14,7 @@ export interface IStorage {
   getActiveProducts(): Promise<Product[]>;
   getProduct(id: number): Promise<Product | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
+  createProducts(products: InsertProduct[]): Promise<Product[]>;
   updateProduct(id: number, product: UpdateProduct): Promise<Product | undefined>;
   deleteProduct(id: number): Promise<boolean>;
   searchProducts(query: string): Promise<Product[]>;
@@ -110,6 +111,126 @@ export class MemStorage implements IStorage {
         category: "cooling",
         badge: "❄️ 시원함",
         purchaseLinks: ["https://s.click.aliexpress.com/e/_DFQxJmL"],
+        isActive: 1
+      },
+      {
+        name: "무선 이어폰 Pro",
+        description: "노이즈 캔슬링 / 초장시간 배터리",
+        price: 89900,
+        originalPrice: 149900,
+        rating: 4.9,
+        imageUrl: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=400",
+        category: "electronics",
+        badge: "🎵 고음질",
+        purchaseLinks: ["https://s.click.aliexpress.com/e/_DBpqrHT"],
+        isActive: 1
+      },
+      {
+        name: "스마트 워치",
+        description: "건강 관리 / 운동 트래킹 / 방수",
+        price: 129900,
+        originalPrice: 199900,
+        rating: 4.6,
+        imageUrl: "https://images.unsplash.com/photo-1579586337278-3f436f25d4d5?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=400",
+        category: "electronics",
+        badge: "💪 건강관리",
+        purchaseLinks: ["https://link.coupang.com/a/AAAA"],
+        isActive: 1
+      },
+      {
+        name: "무선 충전기",
+        description: "고속 충전 / 스탠드형 / iPhone & Android 호환",
+        price: 39900,
+        originalPrice: 59900,
+        rating: 4.5,
+        imageUrl: "https://images.unsplash.com/photo-1616554994735-8e8b97eb9a7d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=400",
+        category: "electronics",
+        badge: "⚡ 고속충전",
+        purchaseLinks: ["https://s.click.aliexpress.com/e/_DkMpQxV"],
+        isActive: 1
+      },
+      {
+        name: "LED 스트립 라이트",
+        description: "RGB 컬러 조명 / 음성 제어 / 분위기 연출",
+        price: 29900,
+        originalPrice: 49900,
+        rating: 4.7,
+        imageUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=400",
+        category: "lighting",
+        badge: "🌈 RGB",
+        purchaseLinks: ["https://link.coupang.com/a/BBBB"],
+        isActive: 1
+      },
+      {
+        name: "책상 정리함",
+        description: "다용도 수납 / 펜꽂이 / 사무용품 정리",
+        price: 15900,
+        originalPrice: 25900,
+        rating: 4.3,
+        imageUrl: "https://images.unsplash.com/photo-1586953208448-b95a79798f07?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=400",
+        category: "office",
+        badge: "📝 정리정돈",
+        purchaseLinks: ["https://s.click.aliexpress.com/e/_DFhpWxN"],
+        isActive: 1
+      },
+      {
+        name: "에어프라이어 5L",
+        description: "대용량 / 기름없이 요리 / 디지털 터치",
+        price: 79900,
+        originalPrice: 129900,
+        rating: 4.8,
+        imageUrl: "https://images.unsplash.com/photo-1556909114-4f6e83bb6b4c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=400",
+        category: "appliances",
+        badge: "👨‍🍳 요리",
+        purchaseLinks: ["https://link.coupang.com/a/CCCC"],
+        isActive: 1
+      },
+      {
+        name: "블루투스 스피커",
+        description: "방수 기능 / 360도 사운드 / 20시간 재생",
+        price: 59900,
+        originalPrice: 89900,
+        rating: 4.6,
+        imageUrl: "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=400",
+        category: "electronics",
+        badge: "🎵 방수",
+        purchaseLinks: ["https://s.click.aliexpress.com/e/_DmLpRxT"],
+        isActive: 1
+      },
+      {
+        name: "게이밍 마우스",
+        description: "RGB 라이팅 / 12000 DPI / 프로게이머 추천",
+        price: 45900,
+        originalPrice: 69900,
+        rating: 4.7,
+        imageUrl: "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=400",
+        category: "gaming",
+        badge: "🎮 게이밍",
+        purchaseLinks: ["https://link.coupang.com/a/DDDD"],
+        isActive: 1
+      },
+      {
+        name: "노트북 거치대",
+        description: "각도 조절 / 방열 기능 / 넥 보호",
+        price: 24900,
+        originalPrice: 39900,
+        rating: 4.4,
+        imageUrl: "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=400",
+        category: "office",
+        badge: "💻 재택근무",
+        purchaseLinks: ["https://s.click.aliexpress.com/e/_DnQpXvH"],
+        isActive: 1
+      },
+      {
+        name: "USB 허브 7포트",
+        description: "고속 데이터 전송 / 개별 스위치 / LED 표시",
+        price: 19900,
+        originalPrice: 29900,
+        rating: 4.5,
+        imageUrl: "https://images.unsplash.com/photo-1616554994735-8e8b97eb9a7d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=400",
+        category: "electronics",
+        badge: "🔌 확장",
+        purchaseLinks: ["https://link.coupang.com/a/EEEE"],
         isActive: 1
       }
     ];

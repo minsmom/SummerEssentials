@@ -62,36 +62,27 @@ export default function Home() {
 
         {/* Category Filter */}
         <div className="flex gap-2 mb-6 overflow-x-auto">
-          <button
-            onClick={() => handleCategoryChange("all")}
-            className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${
-              activeCategory === "all"
-                ? "bg-primary text-white"
-                : "bg-white text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            전체
-          </button>
-          <button
-            onClick={() => handleCategoryChange("cooling")}
-            className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${
-              activeCategory === "cooling"
-                ? "bg-primary text-white"
-                : "bg-white text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            쿨링용품
-          </button>
-          <button
-            onClick={() => handleCategoryChange("appliances")}
-            className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${
-              activeCategory === "appliances"
-                ? "bg-primary text-white"
-                : "bg-white text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            가전제품
-          </button>
+          {[
+            { id: "all", label: "전체" },
+            { id: "cooling", label: "쿨링용품" },
+            { id: "electronics", label: "전자제품" },
+            { id: "appliances", label: "가전제품" },
+            { id: "gaming", label: "게이밍" },
+            { id: "office", label: "사무용품" },
+            { id: "lighting", label: "조명" }
+          ].map(category => (
+            <button
+              key={category.id}
+              onClick={() => handleCategoryChange(category.id)}
+              className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${
+                activeCategory === category.id
+                  ? "bg-primary text-white"
+                  : "bg-white text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              {category.label}
+            </button>
+          ))}
         </div>
 
         {/* Products Grid */}
